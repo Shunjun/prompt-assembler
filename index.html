@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent / Skill 提示词拼装实验室</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <h1 class="logo">提示词拼装实验室</h1>
+        <p class="logo-sub">Agent / Skill Prompt Lab</p>
+      </header>
+      <div class="filter-tabs" role="tablist" aria-label="类型筛选">
+        <button type="button" class="tab active" data-filter="all" role="tab" aria-selected="true">全部</button>
+        <button type="button" class="tab" data-filter="agent" role="tab" aria-selected="false">Agent</button>
+        <button type="button" class="tab" data-filter="skill" role="tab" aria-selected="false">Skill</button>
+      </div>
+      <div class="search-wrap">
+        <input type="search" id="search" class="search" placeholder="搜索来源或组合…" autocomplete="off" />
+      </div>
+      <nav class="source-list" id="sourceList" aria-label="来源与组合列表"></nav>
+      <footer class="sidebar-footer">
+        <span id="listCount"></span>
+      </footer>
+    </aside>
+
+    <main class="main">
+      <div id="emptyState" class="empty-state">
+        <div class="empty-card">
+          <h2>选择左侧组合开始拼装</h2>
+          <p>按来源浏览 Agent / Skill 提示词结构，切换条件分支，实时预览最终发给 LLM 的提示词。</p>
+        </div>
+      </div>
+
+      <div id="detail" class="detail hidden">
+        <header class="detail-header">
+          <div class="detail-badges">
+            <span class="badge kind" id="kindBadge"></span>
+            <span class="badge source" id="sourceBadge"></span>
+          </div>
+          <h2 class="detail-title" id="compTitle"></h2>
+          <p class="detail-desc" id="compDesc"></p>
+          <p class="detail-note" id="compNote"></p>
+          <div class="detail-meta">
+            <a id="repoLink" class="repo-link" href="#" target="_blank" rel="noopener noreferrer">仓库</a>
+            <span class="meta-sep">·</span>
+            <span id="licenseNote" class="license"></span>
+          </div>
+        </header>
+
+        <section class="panel" aria-labelledby="fixedHeading">
+          <div class="panel-head">
+            <h3 id="fixedHeading">固定段</h3>
+            <button type="button" class="btn ghost" id="btnToggleFixed" title="展开或收起固定段说明">展开说明</button>
+          </div>
+          <div class="chips" id="fixedChips"></div>
+          <div class="fixed-details hidden" id="fixedDetails"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="branchHeading">
+          <div class="panel-head">
+            <h3 id="branchHeading">条件分支</h3>
+            <button type="button" class="btn ghost" id="btnReset">重置开关</button>
+          </div>
+          <div class="toggles" id="branchToggles"></div>
+          <p class="hint" id="branchEmpty" hidden>此组合没有可选条件段，全部为固定内容。</p>
+        </section>
+
+        <section class="panel preview-panel" aria-labelledby="previewHeading">
+          <div class="panel-head">
+            <h3 id="previewHeading">最终发给 LLM 的提示词</h3>
+            <div class="preview-actions">
+              <span class="char-count" id="charCount">0 字</span>
+              <button type="button" class="btn primary" id="btnCopy">复制全文</button>
+            </div>
+          </div>
+          <pre class="preview" id="preview" tabindex="0"></pre>
+          <p class="copy-toast" id="copyToast" hidden>已复制到剪贴板</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
