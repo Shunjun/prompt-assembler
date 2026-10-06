@@ -63,13 +63,17 @@
       .replace(/"/g, '&quot;');
   }
 
+  function normKind(k) {
+    return String(k || '').indexOf('skill') === 0 ? 'skill' : 'agent';
+  }
+
   function kindLabel(k) {
-    return k === 'skill' ? 'Skill' : 'Agent';
+    return normKind(k) === 'skill' ? 'Skill' : 'Agent';
   }
 
   function matchesFilter(item) {
     if (state.filter === 'all') return true;
-    return item.kind === state.filter;
+    return normKind(item.kind) === state.filter;
   }
 
   function matchesSearch(text) {
@@ -137,7 +141,7 @@
         esc(src.name) +
         '</span>' +
         '<span class="kind-dot ' +
-        esc(src.kind) +
+        esc(normKind(src.kind)) +
         '">' +
         esc(kindLabel(src.kind)) +
         '</span>' +
