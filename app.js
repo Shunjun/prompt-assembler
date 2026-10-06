@@ -26,7 +26,7 @@
     search: '',
     selectedId: null,
     enabled: {}, // segmentId -> bool
-    fixedExpanded: false,
+    collapsed: {}, // segmentId -> true when folded (default: all expanded)
     openSources: {},
   };
 
@@ -42,10 +42,13 @@
     compNote: document.getElementById('compNote'),
     repoLink: document.getElementById('repoLink'),
     licenseNote: document.getElementById('licenseNote'),
-    fixedChips: document.getElementById('fixedChips'),
-    fixedDetails: document.getElementById('fixedDetails'),
-    btnToggleFixed: document.getElementById('btnToggleFixed'),
-    branchToggles: document.getElementById('branchToggles'),
+    fixedCards: document.getElementById('fixedCards'),
+    fixedEmpty: document.getElementById('fixedEmpty'),
+    fixedCount: document.getElementById('fixedCount'),
+    branchCards: document.getElementById('branchCards'),
+    branchCount: document.getElementById('branchCount'),
+    segSummary: document.getElementById('segSummary'),
+    btnExpandAll: document.getElementById('btnExpandAll'),
     branchEmpty: document.getElementById('branchEmpty'),
     btnReset: document.getElementById('btnReset'),
     preview: document.getElementById('preview'),
@@ -200,6 +203,131 @@
       .join('\n\n---\n\n');
   }
 
+  function countLines(t) {
+    return t ? String(t).split('\n').length : 0;
+  }
+
+  function segCardHtml(s, isCond) {
+    var on = !isCond || !!state.enabled[s.id];
+    var folded = !!state.collapsed[s.id];
+    var text = s.textZh || '';
+    var cls =
+      'seg-card ' + (isCond ? 'cond' : 'fixed') + (on ? ' on' : ' off') + (folded ? ' folded' : '');
+    var html = '<article class="' + cls + '" data-seg-card="' + esc(s.id) + '">';
+    html += '<header class="seg-head">';
+    if (isCond) {
+      html +=
+        '<label class="switch" title="' +
+        (on ? '已加入，点击移出' : '未加入，点击加入') +
+        '">' +
+        '<input type="checkbox" data-toggle-seg="' +
+        esc(s.id) +
+        '"' +
+        (on ? ' checked' : '') +
+        ' aria-label="加入此段：' +
+        esc(s.titleZh) +
+        '" />' +
+        '<span class="slider"></span>' +
+        '</label>';
+    } else {
+      html += '<span class="seg-lock" title="固定段，始终包含">🔒</span>';
+    }
+    html += '<div class="seg-titles">';
+    html +=
+      '<div class="seg-title-row">' +
+      '<span class="seg-badge ' +
+      (isCond ? 'cond' : 'fixed') +
+      '">' +
+      (isCond ? '条件' : '固定') +
+      '</span>' +
+      '<h4 class="seg-title">' +
+      esc(s.titleZh) +
+      '</h4>' +
+      '<span class="seg-order">#' +
+      esc(s.order) +
+      '</span>' +
+      '</div>';
+    if (isCond) {
+      html +=
+        '<div class="seg-cond"><span class="k">何时加入</span>' +
+        esc(s.conditionZh || '（无条件说明）') +
+        '</div>';
+    } else if (s.conditionZh) {
+      html += '<div class="seg-cond"><span class="k">说明</span>' + esc(s.conditionZh) + '</div>';
+    }
+    html +=
+      '<div class="seg-meta">' +
+      text.length.toLocaleString('zh-CN') +
+      ' 字 · ' +
+      countLines(text) +
+      ' 行' +
+      (isCond ? '<span class="seg-state">' + (on ? '已加入最终提示词' : '未加入（仅预览原文）') + '</span>' : '') +
+      '</div>';
+    html += '</div>';
+    html +=
+      '<div class="seg-actions">' +
+      '<button type="button" class="btn mini" data-copy-seg="' +
+      esc(s.id) +
+      '" title="复制此段完整提示词">复制</button>' +
+      '<button type="button" class="btn mini ghost" data-fold-seg="' +
+      esc(s.id) +
+      '" aria-expanded="' +
+      (folded ? 'false' : 'true') +
+      '">' +
+      (folded ? '展开' : '收起') +
+      '</button>' +
+      '</div>';
+    html += '</header>';
+    html += '<pre class="seg-text" data-seg-text="' + esc(s.id) + '" tabindex="0"></pre>';
+    html += '</article>';
+    return html;
+  }
+
+  function renderSegCards(container, list, isCond) {
+    container.innerHTML = list
+      .map(function (s) {
+        return segCardHtml(s, isCond);
+      })
+      .join('');
+    // Fill full text via textContent so every character (incl. leading newlines) is preserved exactly.
+    list.forEach(function (s) {
+      var pre = container.querySelector('[data-seg-text="' + cssEsc(s.id) + '"]');
+      if (pre) pre.textContent = s.textZh || '';
+    });
+  }
+
+  function cssEsc(v) {
+    if (window.CSS && CSS.escape) return CSS.escape(v);
+    return String(v).replace(/["\\]/g, '\\$&');
+  }
+
+  function findSeg(comp, id) {
+    var segs = comp.segments || [];
+    for (var i = 0; i < segs.length; i++) if (segs[i].id === id) return segs[i];
+    return null;
+  }
+
+  function updateSegMeta(comp) {
+    var segs = comp.segments || [];
+    var nFixed = 0;
+    var nCond = 0;
+    var nOn = 0;
+    segs.forEach(function (s) {
+      if (s.always) nFixed++;
+      else {
+        nCond++;
+        if (state.enabled[s.id]) nOn++;
+      }
+    });
+    el.segSummary.textContent =
+      '共 ' + segs.length + ' 段：固定 ' + nFixed + ' 段 · 条件 ' + nCond + ' 段（已开启 ' + nOn + '）';
+    el.branchCount.textContent = nCond ? nOn + ' / ' + nCond + ' 已开启' : '';
+    var anyOpen = segs.some(function (s) {
+      return !state.collapsed[s.id];
+    });
+    el.btnExpandAll.textContent = anyOpen ? '全部收起' : '全部展开';
+  }
+
   function renderDetail() {
     var comp = getComposition(state.selectedId);
     if (!comp) {
@@ -213,7 +341,7 @@
 
     var src = sourceById[comp.sourceId] || {};
     el.kindBadge.textContent = kindLabel(comp.kind);
-    el.kindBadge.className = 'badge kind ' + (comp.kind === 'skill' ? 'skill' : 'agent');
+    el.kindBadge.className = 'badge kind ' + normKind(comp.kind);
     el.sourceBadge.textContent = src.name || comp.sourceId;
     el.compTitle.textContent = comp.titleZh;
     el.compDesc.textContent = comp.descriptionZh || '';
@@ -248,72 +376,15 @@
         return (a.order || 0) - (b.order || 0);
       });
 
-    el.fixedChips.innerHTML = fixed
-      .map(function (s) {
-        return (
-          '<span class="chip" title="固定段，始终包含"><span class="lock">🔒</span>' +
-          esc(s.titleZh) +
-          '</span>'
-        );
-      })
-      .join('');
+    renderSegCards(el.fixedCards, fixed, false);
+    el.fixedEmpty.hidden = fixed.length > 0;
+    el.fixedCount.textContent = fixed.length ? fixed.length + ' 段' : '';
 
-    el.fixedDetails.innerHTML = fixed
-      .map(function (s) {
-        var snip = (s.textZh || '').slice(0, 180);
-        if ((s.textZh || '').length > 180) snip += '…';
-        return (
-          '<div class="fixed-item"><strong>' +
-          esc(s.titleZh) +
-          ' <span style="color:var(--text-dim);font-weight:400">order ' +
-          esc(s.order) +
-          '</span></strong><pre class="snip">' +
-          esc(snip) +
-          '</pre></div>'
-        );
-      })
-      .join('');
+    renderSegCards(el.branchCards, optional, true);
+    el.branchEmpty.hidden = optional.length > 0;
+    el.btnReset.style.display = optional.length ? '' : 'none';
 
-    el.fixedDetails.classList.toggle('hidden', !state.fixedExpanded);
-    el.btnToggleFixed.textContent = state.fixedExpanded ? '收起固定段说明' : '展开固定段说明';
-
-    if (optional.length === 0) {
-      el.branchToggles.innerHTML = '';
-      el.branchEmpty.hidden = false;
-    } else {
-      el.branchEmpty.hidden = true;
-      el.branchToggles.innerHTML = optional
-        .map(function (s) {
-          var on = !!state.enabled[s.id];
-          return (
-            '<div class="toggle-row ' +
-            (on ? 'on' : 'off') +
-            '" data-seg="' +
-            esc(s.id) +
-            '">' +
-            '<label class="switch">' +
-            '<input type="checkbox" data-toggle-seg="' +
-            esc(s.id) +
-            '"' +
-            (on ? ' checked' : '') +
-            ' />' +
-            '<span class="slider"></span>' +
-            '</label>' +
-            '<div class="toggle-body">' +
-            '<div class="title">' +
-            esc(s.titleZh) +
-            ' <span style="color:var(--text-dim);font-weight:400;font-size:11px">#' +
-            esc(s.order) +
-            '</span></div>' +
-            '<div class="cond">' +
-            esc(s.conditionZh || '（无条件说明）') +
-            '</div>' +
-            '</div></div>'
-          );
-        })
-        .join('');
-    }
-
+    updateSegMeta(comp);
     updatePreview(comp);
   }
 
@@ -329,11 +400,31 @@
     var comp = getComposition(id);
     if (!comp) return;
     state.selectedId = id;
-    state.fixedExpanded = false;
+    state.collapsed = {};
     state.openSources[comp.sourceId] = true;
     initEnabled(comp);
     renderSidebar();
     renderDetail();
+    var activeBtn = el.sourceList.querySelector('.comp-btn.active');
+    if (activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ block: 'nearest' });
+    if (history.replaceState) {
+      try {
+        history.replaceState(null, '', '#' + encodeURIComponent(id));
+      } catch (err) {
+        /* file:// may refuse; ignore */
+      }
+    }
+  }
+
+  function compFromHash() {
+    var h = (location.hash || '').replace(/^#/, '');
+    if (!h) return null;
+    try {
+      h = decodeURIComponent(h);
+    } catch (err) {
+      /* ignore */
+    }
+    return getComposition(h);
   }
 
   // Events
@@ -370,18 +461,88 @@
     }
   });
 
-  el.branchToggles.addEventListener('change', function (e) {
+  function onSegChange(e) {
     var input = e.target.closest('[data-toggle-seg]');
     if (!input) return;
     var segId = input.getAttribute('data-toggle-seg');
-    state.enabled[segId] = !!input.checked;
-    var row = input.closest('.toggle-row');
-    if (row) {
-      row.classList.toggle('on', input.checked);
-      row.classList.toggle('off', !input.checked);
+    var on = !!input.checked;
+    state.enabled[segId] = on;
+    var card = input.closest('.seg-card');
+    if (card) {
+      card.classList.toggle('on', on);
+      card.classList.toggle('off', !on);
+      var st = card.querySelector('.seg-state');
+      if (st) st.textContent = on ? '已加入最终提示词' : '未加入（仅预览原文）';
+      var sw = card.querySelector('.switch');
+      if (sw) sw.title = on ? '已加入，点击移出' : '未加入，点击加入';
     }
     var comp = getComposition(state.selectedId);
-    if (comp) updatePreview(comp);
+    if (comp) {
+      updateSegMeta(comp);
+      updatePreview(comp);
+    }
+  }
+
+  function onSegClick(e) {
+    var comp = getComposition(state.selectedId);
+    if (!comp) return;
+    var copyBtn = e.target.closest('[data-copy-seg]');
+    if (copyBtn) {
+      var seg = findSeg(comp, copyBtn.getAttribute('data-copy-seg'));
+      if (!seg) return;
+      copyText(seg.textZh || '', function () {
+        copyBtn.textContent = '已复制';
+        copyBtn.classList.add('done');
+        clearTimeout(copyBtn._t);
+        copyBtn._t = setTimeout(function () {
+          copyBtn.textContent = '复制';
+          copyBtn.classList.remove('done');
+        }, 1400);
+      });
+      return;
+    }
+    var foldBtn = e.target.closest('[data-fold-seg]');
+    if (foldBtn) {
+      var id = foldBtn.getAttribute('data-fold-seg');
+      var folded = !state.collapsed[id];
+      state.collapsed[id] = folded;
+      var card = foldBtn.closest('.seg-card');
+      if (card) card.classList.toggle('folded', folded);
+      foldBtn.textContent = folded ? '展开' : '收起';
+      foldBtn.setAttribute('aria-expanded', folded ? 'false' : 'true');
+      updateSegMeta(comp);
+    }
+  }
+
+  [el.fixedCards, el.branchCards].forEach(function (c) {
+    c.addEventListener('change', onSegChange);
+    c.addEventListener('click', onSegClick);
+  });
+
+  document.getElementById('btnJumpPreview').addEventListener('click', function () {
+    var panel = document.querySelector('.preview-panel');
+    if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  el.btnExpandAll.addEventListener('click', function () {
+    var comp = getComposition(state.selectedId);
+    if (!comp) return;
+    var segs = comp.segments || [];
+    var anyOpen = segs.some(function (s) {
+      return !state.collapsed[s.id];
+    });
+    segs.forEach(function (s) {
+      state.collapsed[s.id] = anyOpen;
+    });
+    document.querySelectorAll('.seg-card').forEach(function (card) {
+      card.classList.toggle('folded', anyOpen);
+      var fb = card.querySelector('[data-fold-seg]');
+      if (fb) {
+        fb.textContent = anyOpen ? '展开' : '收起';
+        fb.setAttribute('aria-expanded', anyOpen ? 'false' : 'true');
+      }
+    });
+    updateSegMeta(comp);
   });
 
   el.btnReset.addEventListener('click', function () {
@@ -391,31 +552,27 @@
     renderDetail();
   });
 
-  el.btnToggleFixed.addEventListener('click', function () {
-    state.fixedExpanded = !state.fixedExpanded;
-    el.fixedDetails.classList.toggle('hidden', !state.fixedExpanded);
-    el.btnToggleFixed.textContent = state.fixedExpanded ? '收起固定段说明' : '展开固定段说明';
-  });
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {
+        fallbackCopy(text);
+        done();
+      });
+    } else {
+      fallbackCopy(text);
+      done();
+    }
+  }
 
   var toastTimer = null;
   el.btnCopy.addEventListener('click', function () {
-    var text = el.preview.textContent || '';
-    function showToast() {
+    copyText(el.preview.textContent || '', function () {
       el.copyToast.hidden = false;
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function () {
         el.copyToast.hidden = true;
       }, 1600);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(showToast).catch(function () {
-        fallbackCopy(text);
-        showToast();
-      });
-    } else {
-      fallbackCopy(text);
-      showToast();
-    }
+    });
   });
 
   function fallbackCopy(text) {
@@ -441,7 +598,13 @@
   renderSidebar();
 
   // Auto-select first composition for better first paint
-  if (compositions.length) {
-    selectComposition(compositions[0].id);
+  var initial = compFromHash() || compositions[0];
+  if (initial) {
+    selectComposition(initial.id);
   }
+
+  window.addEventListener('hashchange', function () {
+    var c = compFromHash();
+    if (c && c.id !== state.selectedId) selectComposition(c.id);
+  });
 })();

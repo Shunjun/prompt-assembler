@@ -31,7 +31,7 @@
       <div id="emptyState" class="empty-state">
         <div class="empty-card">
           <h2>选择左侧组合开始拼装</h2>
-          <p>按来源浏览 Agent / Skill 提示词结构，切换条件分支，实时预览最终发给 LLM 的提示词。</p>
+          <p>按来源浏览 Agent / Skill 提示词结构，逐段查看完整提示词原文，切换条件分支，实时预览最终发给 LLM 的提示词。</p>
         </div>
       </div>
 
@@ -51,35 +51,47 @@
           </div>
         </header>
 
-        <section class="panel" aria-labelledby="fixedHeading">
-          <div class="panel-head">
-            <h3 id="fixedHeading">固定段</h3>
-            <button type="button" class="btn ghost" id="btnToggleFixed" title="展开或收起固定段说明">展开说明</button>
-          </div>
-          <div class="chips" id="fixedChips"></div>
-          <div class="fixed-details hidden" id="fixedDetails"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="branchHeading">
-          <div class="panel-head">
-            <h3 id="branchHeading">条件分支</h3>
-            <button type="button" class="btn ghost" id="btnReset">重置开关</button>
-          </div>
-          <div class="toggles" id="branchToggles"></div>
-          <p class="hint" id="branchEmpty" hidden>此组合没有可选条件段，全部为固定内容。</p>
-        </section>
-
-        <section class="panel preview-panel" aria-labelledby="previewHeading">
-          <div class="panel-head">
-            <h3 id="previewHeading">最终发给 LLM 的提示词</h3>
-            <div class="preview-actions">
-              <span class="char-count" id="charCount">0 字</span>
-              <button type="button" class="btn primary" id="btnCopy">复制全文</button>
+        <div class="detail-body">
+          <div class="segments-col">
+            <div class="seg-toolbar">
+              <span class="seg-summary" id="segSummary"></span>
+              <div class="seg-toolbar-actions">
+                <button type="button" class="btn ghost jump-preview" id="btnJumpPreview" title="跳到下方拼装好的最终提示词">看拼装结果 ↓</button>
+                <button type="button" class="btn ghost" id="btnExpandAll" title="展开或收起所有段落的完整提示词">全部收起</button>
+              </div>
             </div>
+
+            <section class="panel" aria-labelledby="fixedHeading">
+              <div class="panel-head">
+                <h3 id="fixedHeading">固定段 <span class="panel-count" id="fixedCount"></span></h3>
+                <span class="panel-sub">始终包含在最终提示词中</span>
+              </div>
+              <div class="seg-cards" id="fixedCards"></div>
+              <p class="hint" id="fixedEmpty" hidden>此组合没有固定段。</p>
+            </section>
+
+            <section class="panel" aria-labelledby="branchHeading">
+              <div class="panel-head">
+                <h3 id="branchHeading">条件分支 <span class="panel-count" id="branchCount"></span></h3>
+                <button type="button" class="btn ghost" id="btnReset">重置开关</button>
+              </div>
+              <div class="seg-cards" id="branchCards"></div>
+              <p class="hint" id="branchEmpty" hidden>此组合没有可选条件段，全部为固定内容。</p>
+            </section>
           </div>
-          <pre class="preview" id="preview" tabindex="0"></pre>
-          <p class="copy-toast" id="copyToast" hidden>已复制到剪贴板</p>
-        </section>
+
+          <section class="panel preview-panel" aria-labelledby="previewHeading">
+            <div class="panel-head">
+              <h3 id="previewHeading">最终发给 LLM 的提示词</h3>
+              <div class="preview-actions">
+                <span class="char-count" id="charCount">0 字</span>
+                <button type="button" class="btn primary" id="btnCopy">复制全文</button>
+              </div>
+            </div>
+            <pre class="preview" id="preview" tabindex="0"></pre>
+            <p class="copy-toast" id="copyToast" hidden>已复制到剪贴板</p>
+          </section>
+        </div>
       </div>
     </main>
   </div>
