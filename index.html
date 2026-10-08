@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agent / Skill 提示词拼装实验室</title>
+  <title>Agent / Skill / 工作流 提示词拼装实验室</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,12 +11,13 @@
     <aside class="sidebar">
       <header class="sidebar-header">
         <h1 class="logo">提示词拼装实验室</h1>
-        <p class="logo-sub">Agent / Skill Prompt Lab</p>
+        <p class="logo-sub">Agent / Skill / Workflow Prompt Lab</p>
       </header>
       <div class="filter-tabs" role="tablist" aria-label="类型筛选">
         <button type="button" class="tab active" data-filter="all" role="tab" aria-selected="true">全部</button>
         <button type="button" class="tab" data-filter="agent" role="tab" aria-selected="false">Agent</button>
         <button type="button" class="tab" data-filter="skill" role="tab" aria-selected="false">Skill</button>
+        <button type="button" class="tab" data-filter="workflow" role="tab" aria-selected="false">工作流</button>
       </div>
       <div class="search-wrap">
         <input type="search" id="search" class="search" placeholder="搜索来源或组合…" autocomplete="off" />
@@ -31,7 +32,7 @@
       <div id="emptyState" class="empty-state">
         <div class="empty-card">
           <h2>选择左侧组合开始拼装</h2>
-          <p>按来源浏览 Agent / Skill 提示词结构，逐段查看完整提示词原文，切换条件分支，实时预览最终发给 LLM 的提示词。</p>
+          <p>按来源浏览 Agent / Skill / 工作流工具的提示词结构，逐段查看完整提示词原文，切换条件分支，实时预览最终发给 LLM 的提示词。</p>
         </div>
       </div>
 

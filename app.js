@@ -67,11 +67,15 @@
   }
 
   function normKind(k) {
-    return String(k || '').indexOf('skill') === 0 ? 'skill' : 'agent';
+    var s = String(k || '');
+    if (s.indexOf('skill') === 0) return 'skill';
+    if (s === 'workflow') return 'workflow';
+    return 'agent';
   }
 
   function kindLabel(k) {
-    return normKind(k) === 'skill' ? 'Skill' : 'Agent';
+    var n = normKind(k);
+    return n === 'skill' ? 'Skill' : n === 'workflow' ? '工作流' : 'Agent';
   }
 
   function matchesFilter(item) {
